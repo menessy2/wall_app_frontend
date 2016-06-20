@@ -1,0 +1,363 @@
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>The Shared Wall</title>
+
+    <!-- Bootstrap core CSS -->
+ 
+    <link rel="stylesheet" href="http://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css">
+	<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.2/jquery.min.js"></script>
+	<script src="http://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/js/bootstrap.min.js"></script>
+
+    <!-- Custom styles for this template -->
+    <link href="http://getbootstrap.com/examples/jumbotron-narrow/jumbotron-narrow.css" rel="stylesheet">
+
+	<script>
+		var BASEURL = 'http://127.0.0.1:8000'
+
+		$(document).ready(function(){
+			$('#logoutbutton').hide();
+
+			$.ajax(BASEURL + '/posts/', {
+				crossOrigin: true,
+			    dataType: 'json',
+			    success:function(json){
+			        var items = [];
+					$.each( json, function( index) {
+
+						var item =  '<div id="feed"><div class="row" >\
+								  <div class="col-md-2"><img src="https://api.adorable.io/avatars/285/'+json[index].creator+'" class="img-circle" width="100%"/></div>\
+								  <div class="col-md-10">\
+								  <div><b>'+json[index].creator+'</b>\
+								  <div class="pull-right text-muted" id="delete">hide</div></div>\
+								  <div> '+json[index].content+'</div>\
+								  <div class="text-muted"> <small>posted on '+json[index].creation_time+'</small></div>\
+								  </div></div><hr></div>';
+
+						items.push(item);
+					});
+					var output = items.join("");
+					$(output).insertAfter( "#insert" ).hide().slideDown();
+			     },
+			     error:function(){
+			         alert("Connection Error with Backend");
+	     		}      
+			})
+
+		
+
+			$(document).on('click','#button',function(){
+				var feed = $('#feedbox').val();
+				var data = new Object();
+				data.content = feed;
+				if(!feed)
+					alert('You cannot submit an empty post');
+				else{
+						$.ajax(BASEURL + '/posts/', {
+						    dataType: 'json',
+						    type: 'POST',
+						    crossDomain: true,
+						    xhrFields: {
+							    withCredentials: true
+							},
+						    contentType: "application/json",
+						    data: JSON.stringify(data),
+						    success: function(data, textStatus, xhr) {
+						    	$('#logoutbutton').show();
+								var item =  '<div id="feed"><div class="row" >\
+										  <div class="col-md-2"><img src="https://api.adorable.io/avatars/285/'+data.creator+'" class="img-circle" width="100%"/></div>\
+										  <div class="col-md-10">\
+										  <div><b>'+data.creator+'</b>\
+										  <div class="pull-right text-muted" id="delete">hide</div></div>\
+										  <div> '+data.content+'</div>\
+										  <div class="text-muted"> <small>posted on '+data.creation_time+'</small></div>\
+										  </div></div><hr></div>';
+								$(item).insertAfter( "#insert" ).hide().slideDown();
+								$('#feedbox').val('');
+						     },
+						     statusCode: {
+							    403: function() {
+							      	$("#myModal").modal();
+							    },
+							    500: function() {
+							      alert('500 status code! server error');
+							    }
+							  }
+						})
+				}
+			});
+
+			
+			$(document).on('click','#signinbutton',function(){
+				var data = new Object();
+				data.username = $('#username_signin').val();
+				data.password = $('#password_signin').val();
+				$.ajax(BASEURL + '/accounts/login/', {
+					dataType: 'json',
+				    type: 'POST',
+				    crossDomain: true,
+				    xhrFields: {
+					    withCredentials: true
+					},
+				    contentType: "application/json",
+				    data: JSON.stringify(data),
+				    success: function(data, textStatus, xhr) {
+				    	if ( data.is_authenticated == true ) {
+				    		
+				    		cookie = data.message;
+				    		document.cookie = 'sessionid=' + cookie + "; path=/; domain=127.0.0.1:8000"; 
+				    		$( "#button" ).trigger( "click" );
+				    		$('#myModal').modal('hide');
+				    		$('#logoutbutton').show();
+				    	}
+				     },
+				     error:function(){
+					         //alert("Connection Error with Backend");
+			     	},
+				     statusCode: {
+					    403: function() {
+					    	alert("Wrong Credentials");
+					    },
+					    500: function() {
+					      alert('500 status code! server error');
+					    }
+					  }
+				})
+		
+			});
+
+
+			$(document).on('click','#confirmsignup',function(){
+				var data = new Object();
+
+				data.username = $('#username_signup').val();
+				data.first_name = $('#firstname_signup').val();
+				data.last_name = $('#lastname_signup').val();
+				data.email = $('#email_signup').val();
+				data.password = $('#password_signup').val();
+				
+				
+				$.ajax(BASEURL + '/accounts/', {
+					dataType: 'json',
+				    type: 'POST',
+				    crossDomain: true,
+				    xhrFields: {
+					    withCredentials: true
+					},
+				    contentType: "application/json",
+				    data: JSON.stringify(data),
+				    success: function(data, textStatus, xhr) {
+				    	//alert("successful")
+				     },
+				     error:function(){
+					         //alert("Connection Error with Backend");
+			     	},
+				     statusCode: {
+					    201: function() {
+					    	$('#username_signin').val(data.username);
+							$('#password_signin').val(data.password);
+					    	$("#signinbutton").trigger( "click" );
+					    },
+					    400: function(jqXHR, textStatus, errorThrown) {
+					      alert(jqXHR.responseText);
+					    },
+					    500: function() {
+					      alert('500 status code! server error');
+					    }
+					  }
+				})
+		
+			});
+
+
+			$(document).on('click','#logoutbutton',function(){
+				$.ajax(BASEURL + '/accounts/logout/', {
+				    type: 'GET',
+				    crossDomain: true,
+				    xhrFields: {
+					    withCredentials: true
+					},
+				    success: function(data, textStatus, xhr) {
+				    	alert("loggged out successfully");
+				    	$('#logoutbutton').hide();
+				     },
+				     error:function(){
+					         //alert("Connection Error with Backend");
+			     	},
+				     statusCode: {
+					    403: function() {
+					    	$('#logoutbutton').hide();
+					    },
+					    500: function() {
+					      alert('500 status code! server error');
+					    }
+					  }
+				})
+		
+			});
+
+			
+			$(document).on('click','#delete',function(){
+				$(this).closest('#feed').slideUp();
+			});
+
+		});
+	</script>
+<style>
+	#delete{
+		cursor:pointer;
+	}
+	.container1{
+		width:730px;
+		margin:0px auto;
+	}
+</style>
+	</head>
+
+  <body>
+
+    <div class="container1">
+      <div class="header">
+
+        <h3 class="text-muted"><center>The Shared Wall</center></h3>
+      </div>
+
+	<div>
+		<div class="row">
+		  <div class="col-md-2"><img src="https://api.adorable.io/avatars/285/dummy@dumy.comasd.png" class="img-circle" width="100%"/></div>
+		  <div class="col-md-10"><textarea class="form-control" id="feedbox" rows="3"></textarea><br>
+		  <button type="button" id="button" class="btn btn-default" >Post</button>
+		  </div>
+		</div>
+	</div>
+	<hr>
+		<div id="insert"></div>
+		<div>
+		</div>
+	</div>
+	<br>
+
+      
+
+	<div class="footer">
+	<p style="text-align:right"><button type="button" id="logoutbutton" class="btn btn-default" >Logout</button></p>
+	<p style="text-align:right">Shared Wall application, assignment for TSL, Mostafa Menessy.</p>
+	</div>
+	<br>
+	<div class="well">
+	<h4> Functional Requirements</h4>
+		 <br> - User Registration and login
+		 <br> - Posts listing for guest and authenticated users
+		 <br> - Post Creation
+	</div>
+
+		<!-- Modal -->
+	<div class="modal fade bs-modal-sm" id="myModal" tabindex="-1" role="dialog" aria-labelledby="mySmallModalLabel" aria-hidden="true">
+	  <div class="modal-dialog modal-sm">
+	    <div class="modal-content">
+	        <br>
+	        <div class="bs-example bs-example-tabs">
+	            <ul id="myTab" class="nav nav-tabs">
+	              <li class="active"><a href="#signin" data-toggle="tab">Sign In</a></li>
+	              <li class=""><a href="#signup" data-toggle="tab">Register</a></li>
+	            </ul>
+	        </div>
+	      <div class="modal-body">
+	        <div id="myTabContent" class="tab-content">
+
+	        <div class="tab-pane fade active in" id="signin">
+	            <fieldset>
+	            <!-- Sign In Form -->
+	            <!-- Text input-->
+	            <div class="control-group">
+	              <label class="control-label" for="userid">Username:</label>
+	              <div class="controls">
+	                <input required="" id="username_signin" name="username" type="text" class="form-control" placeholder="JoeSixpack" class="input-medium" required="">
+	              </div>
+	            </div>
+
+	            <!-- Password input-->
+	            <div class="control-group">
+	              <label class="control-label" for="passwordinput">Password:</label>
+	              <div class="controls">
+	                <input required="" id="password_signin" name="password" class="form-control" type="password" placeholder="********" >
+	              </div>
+	            </div>
+
+	            <!-- Button -->
+	            <div class="control-group">
+	              <label class="control-label" ></label>
+	              <div class="controls">
+	                <button id="signinbutton" class="btn btn-success">Sign In</button>
+	              </div>
+	            </div>
+	            </fieldset>
+	        </div>
+	        <div class="tab-pane fade" id="signup">
+	            <fieldset>
+	            <!-- Sign Up Form -->
+	            <!-- Text input-->
+	            <div class="control-group">
+	              <label class="control-label" for="Email">Email:</label>
+	              <div class="controls">
+	                <input id="email_signup" name="Email" class="form-control" type="text" placeholder="JoeSixpack@sixpacksrus.com" class="input-large" required="">
+	              </div>
+	            </div>
+	            
+	            <!-- Text input-->
+	            <div class="control-group">
+	              <label class="control-label" for="userid">Username:</label>
+	              <div class="controls">
+	                <input id="username_signup" name="userid" class="form-control" type="text" placeholder="JoeSixpack" class="input-large" required="">
+	              </div>
+	            </div>
+	            
+	            <!-- Password input-->
+	            <div class="control-group">
+	              <label class="control-label" for="password">Password:</label>
+	              <div class="controls">
+	                <input id="password_signup" name="password" class="form-control" type="password" placeholder="********" class="input-large" required="">
+	              </div>
+	            </div>
+
+	            <div class="control-group">
+	              <label class="control-label" for="firstname">First Name:</label>
+	              <div class="controls">
+	                <input id="firstname_signup" name="firstname" class="form-control" type="text" placeholder="Mostafa" class="input-large" required="">
+	              </div>
+	            </div>
+
+	            <div class="control-group">
+	              <label class="control-label" for="lastname">Last Name:</label>
+	              <div class="controls">
+	                <input id="lastname_signup" name="lastname" class="form-control" type="text" placeholder="Menessy" class="input-large" required="">
+	              </div>
+	            </div>
+	            
+	            <!-- Button -->
+	            <div class="control-group">
+	              <label class="control-label" for="confirmsignup"></label>
+	              <div class="controls">
+	                <button id="confirmsignup" name="confirmsignup" class="btn btn-success">Sign Up</button>
+	              </div>
+	            </div>
+	            </fieldset>
+	      </div>
+	    </div>
+	      </div>
+	      <div class="modal-footer">
+	      <center>
+	        <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+	        </center>
+	      </div>
+	    </div>
+	  </div>
+	</div>
+
+  </body>
+</html>
